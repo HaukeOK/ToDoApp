@@ -33,6 +33,9 @@
             txtTitel = new TextBox();
             txtBeschreibung = new TextBox();
             btnSpeichern = new Button();
+            // NEU: Deklaration für die neuen Steuerelemente.
+            lblBearbeiter = new Label();
+            cmbBearbeiter = new ComboBox();
             SuspendLayout();
             // 
             // lblTitel
@@ -69,7 +72,8 @@
             // 
             // btnSpeichern
             // 
-            btnSpeichern.Location = new Point(61, 183);
+            // GEÄNDERT: Y-Position des Buttons angepasst.
+            btnSpeichern.Location = new Point(61, 253);
             btnSpeichern.Name = "btnSpeichern";
             btnSpeichern.Size = new Size(94, 29);
             btnSpeichern.TabIndex = 4;
@@ -77,11 +81,33 @@
             btnSpeichern.UseVisualStyleBackColor = true;
             btnSpeichern.Click += btnSpeichern_Click;
             // 
+            // NEU: Eigenschaften für das Label "Bearbeiter".
+            // 
+            lblBearbeiter.AutoSize = true;
+            lblBearbeiter.Location = new Point(61, 182);
+            lblBearbeiter.Name = "lblBearbeiter";
+            lblBearbeiter.Size = new Size(78, 20);
+            lblBearbeiter.TabIndex = 5;
+            lblBearbeiter.Text = "Bearbeiter";
+            // 
+            // NEU: Eigenschaften für die ComboBox zur Benutzerauswahl.
+            // 
+            cmbBearbeiter.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbBearbeiter.FormattingEnabled = true;
+            cmbBearbeiter.Location = new Point(61, 205);
+            cmbBearbeiter.Name = "cmbBearbeiter";
+            cmbBearbeiter.Size = new Size(247, 28);
+            cmbBearbeiter.TabIndex = 6;
+            // 
             // FrmAufgabe
             // 
             AutoScaleDimensions = new SizeF(8F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(415, 261);
+            // GEÄNDERT: Die Größe des Formulars wurde erhöht.
+            ClientSize = new Size(415, 311);
+            // NEU: Hinzufügen der neuen Steuerelemente zum Formular.
+            Controls.Add(cmbBearbeiter);
+            Controls.Add(lblBearbeiter);
             Controls.Add(btnSpeichern);
             Controls.Add(txtBeschreibung);
             Controls.Add(txtTitel);
@@ -101,5 +127,8 @@
         private TextBox txtTitel;
         private TextBox txtBeschreibung;
         private Button btnSpeichern;
+        // NEU: Private Felder für die neuen Steuerelemente.
+        private Label lblBearbeiter;
+        private ComboBox cmbBearbeiter;
     }
 }
