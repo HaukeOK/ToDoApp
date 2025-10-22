@@ -8,7 +8,7 @@ namespace ToDoDesktop
 {
     public class AufgabenListe
     {
-        public Guid Id { get; set; } = Guid.NewGuid(); // Eindeutige ID der Aufgabenliste
+        public int Id { get; set; }
         public string Titel { get; set; } = string.Empty;
         public List<Aufgabe> Aufgaben { get; set; } = new List<Aufgabe>();
     }

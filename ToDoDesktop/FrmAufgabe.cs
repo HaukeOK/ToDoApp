@@ -13,20 +13,7 @@ namespace ToDoDesktop
     public partial class FrmAufgabe : Form
     {
         public Aufgabe Aufgabe = new Aufgabe();
-        // Pseudocode (detaillierter Plan):
-        // - Analyse: Der Code-Analyzer meldet WFO1000: Die Eigenschaft "BenutzerListe" konfiguriert die Codeserialisierung
-        //   für ihren Eigenschafteninhalt nicht. Der WinForms-Designer erwartet für kollektionsartige Eigenschaften,
-        // - Lösung: Die Eigenschaft mit dem Attribut
-        //   [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
-        //   versehen, damit der Designer den Inhalt der Liste (nicht nur die Referenz) serialisiert.
-        // - Implementierung:
-        //   1. Attribute hinzufügen (using System.ComponentModel ist bereits vorhanden).
-        //   2. Die Autoeigenschaft beibehalten und initialisieren mit new List<Benutzer>().
-        //   3. Keine weiteren Änderungen am Verhalten der Eigenschaft erforderlich.
-        // - Ergebnis: Analyzer-Warnung WFO1000 wird behoben, der Designer kann die Listenelemente serialisieren.
-
-        [DesignerSerializationVisibility(DesignerSerializationVisibility.Content)]
-        public List<Benutzer> BenutzerListe { get; set; } = new List<Benutzer>();
+        public List<Benutzer> BenutzerListe = new List<Benutzer>();
 
         public FrmAufgabe()
         {
@@ -38,27 +25,21 @@ namespace ToDoDesktop
             txtTitel.Text = Aufgabe.Titel;
             txtBeschreibung.Text = Aufgabe.Beschreibung;
 
-            // NEU: Dieser Block füllt die ComboBox und wählt den gespeicherten Bearbeiter aus.
-
-            // Definiert, welche Eigenschaft des Benutzer-Objekts angezeigt werden soll.
+            //Die ComboBox wird jetzt so konfiguriert, dass sie die Benutzer-ID als Wert verwendet
+            cmbBearbeiter.DataSource = BenutzerListe;
             cmbBearbeiter.DisplayMember = "Name";
+            cmbBearbeiter.ValueMember = "Id";
 
-            // Erstellt eine temporäre Liste und fügt einen leeren Benutzer am Anfang hinzu.
-            // Dies ermöglicht es, "keinen Bearbeiter" auszuwählen.
-            var benutzerMitLeeremEintrag = new List<Benutzer> { new Benutzer { Name = "" } };
-            benutzerMitLeeremEintrag.AddRange(BenutzerListe);
-            cmbBearbeiter.DataSource = benutzerMitLeeremEintrag;
-
-            // Prüft, ob der Aufgabe bereits ein Bearbeiter zugewiesen ist.
-            if (Aufgabe.Bearbeiter != null && !string.IsNullOrEmpty(Aufgabe.Bearbeiter.Name))
+            // Prüft, ob eine BearbeiterId in der Aufgabe gespeichert ist.
+            if (Aufgabe.BearbeiterId.HasValue)
             {
-                // Sucht den zugewiesenen Benutzer in der Liste.
-                var bearbeiter = BenutzerListe.FirstOrDefault(b => b.Name == Aufgabe.Bearbeiter.Name);
-                if (bearbeiter != null)
-                {
-                    // Wählt den gefundenen Benutzer in der ComboBox aus.
-                    cmbBearbeiter.SelectedItem = bearbeiter;
-                }
+                // Wählt den Benutzer basierend auf der gespeicherten ID aus.
+                cmbBearbeiter.SelectedValue = Aufgabe.BearbeiterId.Value;
+            }
+            else
+            {
+                // Wenn keine ID gespeichert ist, wird kein Benutzer ausgewählt.
+                cmbBearbeiter.SelectedItem = null;
             }
         }
 
@@ -67,16 +48,15 @@ namespace ToDoDesktop
             Aufgabe.Titel = txtTitel.Text;
             Aufgabe.Beschreibung = txtBeschreibung.Text;
 
-            // NEU: Speichert den ausgewählten Benutzer aus der ComboBox.
-            if (cmbBearbeiter.SelectedItem is Benutzer ausgewaehlterBenutzer && !string.IsNullOrEmpty(ausgewaehlterBenutzer.Name))
+            //Speichert die ID des ausgewählten Benutzers.
+            if (cmbBearbeiter.SelectedValue != null)
             {
-                // Wenn ein gültiger Benutzer ausgewählt wurde, wird er der Aufgabe zugewiesen.
-                Aufgabe.Bearbeiter = ausgewaehlterBenutzer;
+                Aufgabe.BearbeiterId = (int)cmbBearbeiter.SelectedValue;
             }
             else
             {
-                // Ansonsten wird der Bearbeiter auf null gesetzt (keine Zuweisung).
-                Aufgabe.Bearbeiter = null;
+                // Wenn nichts ausgewählt ist, wird die BearbeiterId auf null gesetzt.
+                Aufgabe.BearbeiterId = null;
             }
 
             this.DialogResult = DialogResult.OK;

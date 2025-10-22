@@ -8,7 +8,7 @@ namespace ToDoDesktop
 {
     public class Benutzer
     {
-        public Guid Id { get; set; } = Guid.NewGuid(); // Eindeutige ID des Benutzers
+        public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
     }
 }

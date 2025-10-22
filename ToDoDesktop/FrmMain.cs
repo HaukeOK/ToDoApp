@@ -9,14 +9,14 @@ namespace ToDoDesktop
         private List<AufgabenListe> _aufgabenListe = new List<AufgabenListe>();
         private List<Benutzer> _benutzer = new List<Benutzer>();
 
-        private XmlSerializer xmlTodo
-            = new XmlSerializer(typeof(List<AufgabenListe>));
-        // NEU: Ein XmlSerializer für die Benutzerliste.
-        private XmlSerializer xmlBenutzer
-            = new XmlSerializer(typeof(List<Benutzer>));
+        private XmlSerializer xmlTodo = new XmlSerializer(typeof(List<AufgabenListe>));
+        private XmlSerializer xmlBenutzer = new XmlSerializer(typeof(List<Benutzer>));
         private string xmlFileTodo = "todo.xml";
-        // NEU:Das selbe wie im vorhinein. Der Dateiname für die Benutzer-XML.
         private string xmlFileBenutzer = "benutzer.xml";
+
+        private static int _naechsteBenutzerId = 1;
+        private static int _naechsteAufgabenListenId = 1;
+        private static int _naechsteAufgabenId = 1;
 
         public FrmMain()
         {
@@ -25,43 +25,46 @@ namespace ToDoDesktop
 
         private void XmlLaden()
         {
-            // Wenn die XML-Datei noch nicht existiert, dann Abbruch des Einlesens
             if (File.Exists(xmlFileTodo))
             {
-                // Filestream mit der XML-Datei öffnen
                 using (FileStream fsRead = File.Open(xmlFileTodo, FileMode.Open))
                 {
-                    // Aufgabenlisten-Struktur aus der XML-Datei durch Desrialisierung auslesen
-                    _aufgabenListe =
-                        xmlTodo.Deserialize(fsRead) as List<AufgabenListe> ?? new List<AufgabenListe>();
+                    _aufgabenListe = xmlTodo.Deserialize(fsRead) as List<AufgabenListe> ?? new List<AufgabenListe>();
                 }
             }
 
-            // NEU: Das selbe wie vorher schon, um die Benutzer zuladen.
             if (File.Exists(xmlFileBenutzer))
             {
                 using (FileStream fsRead = File.Open(xmlFileBenutzer, FileMode.Open))
                 {
-                    _benutzer =
-                        xmlBenutzer.Deserialize(fsRead) as List<Benutzer> ?? new List<Benutzer>();
+                    _benutzer = xmlBenutzer.Deserialize(fsRead) as List<Benutzer> ?? new List<Benutzer>();
+                }
+            }
+
+            //ID-Zähler initialisieren
+            if (_benutzer.Any())
+                _naechsteBenutzerId = _benutzer.Max(b => b.Id) + 1;
+
+            if (_aufgabenListe.Any())
+            {
+                _naechsteAufgabenListenId = _aufgabenListe.Max(al => al.Id) + 1;
+                if (_aufgabenListe.SelectMany(al => al.Aufgaben).Any())
+                {
+                    _naechsteAufgabenId = _aufgabenListe.SelectMany(al => al.Aufgaben).Max(a => a.Id) + 1;
                 }
             }
         }
 
         private void XmlSpeichern()
         {
-            // Wenn mindestens ein Element in der Liste der Aufgabenlisten enthalten ist
-            if (_aufgabenListe.Count >= 0) // Geändert: Speichert auch, wenn Liste leer ist, um die Datei zu leeren
+            if (_aufgabenListe.Count >= 0)
             {
-                // XML-Datei neu erstellen (create)
                 using (FileStream fsWrite = File.Create(xmlFileTodo))
                 {
-                    // Liste der Aufgabenlisten serialisieren
                     xmlTodo.Serialize(fsWrite, _aufgabenListe);
                 }
             }
 
-            // NEU: Der Speicher-Block für die Benutzerliste.
             if (_benutzer.Count >= 0)
             {
                 using (FileStream fsWrite = File.Create(xmlFileBenutzer))
@@ -71,7 +74,6 @@ namespace ToDoDesktop
             }
         }
 
-
         private void btnEnde_Click(object sender, EventArgs e)
         {
             this.Close();
@@ -79,28 +81,23 @@ namespace ToDoDesktop
 
         private void FrmMain_Load(object sender, EventArgs e)
         {
-            // Wenn Form geladen wird, Listen aus der Datei auslesen
             XmlLaden();
             AufgabenListeAktualisieren();
-            // NEU: Die Benutzerliste wird beim Start ebenfalls aktualisiert.
             BenutzerAktualisieren();
         }
 
         private void btnAufgabenListeNeu_Click(object sender, EventArgs e)
         {
-            // Erzeugen eine neue Instanz des Formulars für Aufgabenlistenerstellung
             FrmAufgabenListe frmAufgabenListe = new FrmAufgabenListe();
-
-            // lokale neue Aufgabenliste erstellen
             AufgabenListe aufgabenListe = new AufgabenListe();
 
-            // lokale Aufgabenliste an Formular zur Bearbeitung übergeben
+            //Weist die nächste freie ID zu und erhöht den Zähler
+            aufgabenListe.Id = _naechsteAufgabenListenId++;
+
             frmAufgabenListe.AufgabenListe = aufgabenListe;
 
-            // Formular modal anzeigen und Ergebniswert abfragen
             if (frmAufgabenListe.ShowDialog() == DialogResult.OK)
             {
-                // Element der Aufgabenliste hinzufügen
                 _aufgabenListe.Add(aufgabenListe);
                 AufgabenListeAktualisieren();
             }
@@ -108,29 +105,20 @@ namespace ToDoDesktop
 
         private void AufgabenListeAktualisieren()
         {
-            // Listbox-Steuerlement leeren
-            lstAufgabenListen.Items.Clear();
-            // einzelnen Aufgabenlisten hinzfügen
-            foreach (AufgabenListe list in _aufgabenListe)
-            {
-                lstAufgabenListen.Items.Add(list.Titel);
-            }
+            //Die ListBox wird jetzt direkt an die Datenquelle gebunden
+            lstAufgabenListen.DataSource = null;
+            lstAufgabenListen.DataSource = _aufgabenListe;
+            lstAufgabenListen.DisplayMember = "Titel";
+            lstAufgabenListen.ValueMember = "Id";
         }
 
-        // Eintrag bearbeiten
         private void lstAufgabenListen_DoubleClick(object sender, EventArgs e)
         {
-            // Wenn nichts in der Liste ausgewählt - abbrechen
             if (lstAufgabenListen.SelectedIndex < 0)
                 return;
 
-            // Neue Formularinstanz anlegen
             FrmAufgabenListe frmAufgabenListe = new FrmAufgabenListe();
-
-            // Dem Feld auf dem Formular das Element der Aufgabenlistenlist zuweisen,
-            // welches mit dem selektierten Index der Listbox übereinstimmt
-            frmAufgabenListe.AufgabenListe =
-                _aufgabenListe.ElementAt(lstAufgabenListen.SelectedIndex);
+            frmAufgabenListe.AufgabenListe = _aufgabenListe.ElementAt(lstAufgabenListen.SelectedIndex);
 
             if (frmAufgabenListe.ShowDialog() == DialogResult.OK)
                 AufgabenListeAktualisieren();
@@ -138,56 +126,45 @@ namespace ToDoDesktop
 
         private void btnAufgabenListeLoeschen_Click(object sender, EventArgs e)
         {
-            // Nichts tun, wenn nichts ausgewählt
             if (lstAufgabenListen.SelectedIndex < 0) return;
 
-            // Aufgabenliste aus der Liste der Listen löschen
             _aufgabenListe.RemoveAt(lstAufgabenListen.SelectedIndex);
-
-            // Listbox-Inhalt aktualisieren
             AufgabenListeAktualisieren();
         }
 
         private void btnAufgabeNeu_Click(object sender, EventArgs e)
         {
-            // Wenn keine Aufgabenliste ausgewählt - abbrechen
             if (lstAufgabenListen.SelectedIndex < 0) return;
 
             FrmAufgabe frmAufgabe = new FrmAufgabe();
             Aufgabe aufgabe = new Aufgabe();
+
+            //Weist die nächste freie ID zu und erhöht den Zähler.
+            aufgabe.Id = _naechsteAufgabenId++;
+
             frmAufgabe.Aufgabe = aufgabe;
-            // NEU: Die komplette Benutzerliste wird an das Aufgaben-Formular übergeben.
             frmAufgabe.BenutzerListe = _benutzer;
 
             if (frmAufgabe.ShowDialog() == DialogResult.OK)
             {
-                _aufgabenListe
-                    .ElementAt(lstAufgabenListen.SelectedIndex)
-                    .Aufgaben.Add(aufgabe);
+                _aufgabenListe.ElementAt(lstAufgabenListen.SelectedIndex).Aufgaben.Add(aufgabe);
                 AufgabenAktualisieren();
             }
         }
 
         private void AufgabenAktualisieren()
         {
-            // Listbox der Aufgaben löschen
-            lstAufgaben.Items.Clear();
-
-            // für jedes Element der ausgewählten Aufgabenliste die Aufgaben mit dem Titel
-            // zur Listbox der Aufgaben hinzufügen
-            if (lstAufgabenListen.SelectedIndex >= 0) // GEÄNDERT: Prüft ob eine Aufgabenliste ausgewählt ist.
+            //Auch diese ListBox wird jetzt an die Datenquelle gebunden.
+            lstAufgaben.DataSource = null;
+            if (lstAufgabenListen.SelectedIndex >= 0)
             {
-                foreach (Aufgabe aufgabe in
-                    _aufgabenListe
-                        .ElementAt(lstAufgabenListen.SelectedIndex).Aufgaben
-                )
-                {
-                    lstAufgaben.Items.Add(aufgabe.Titel);
-                }
+                var ausgewaehlteListe = _aufgabenListe.ElementAt(lstAufgabenListen.SelectedIndex);
+                lstAufgaben.DataSource = ausgewaehlteListe.Aufgaben;
+                lstAufgaben.DisplayMember = "Titel";
+                lstAufgaben.ValueMember = "Id";
             }
         }
 
-        // Wrapper-Methoder
         private void lstAufgabenListen_SelectedIndexChanged(object sender, EventArgs e)
         {
             AufgabenAktualisieren();
@@ -195,7 +172,7 @@ namespace ToDoDesktop
 
         private void btnAufgabeLoeschen_Click(object sender, EventArgs e)
         {
-            if (lstAufgaben.SelectedIndex < 0) return;
+            if (lstAufgaben.SelectedIndex < 0 || lstAufgabenListen.SelectedIndex < 0) return;
 
             _aufgabenListe
                 .ElementAt(lstAufgabenListen.SelectedIndex)
@@ -204,21 +181,14 @@ namespace ToDoDesktop
             AufgabenAktualisieren();
         }
 
-        private void lstAufgaben_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
         private void lstAufgaben_DoubleClick(object sender, EventArgs e)
         {
-            if (lstAufgaben.SelectedIndex < 0) return;
+            if (lstAufgaben.SelectedIndex < 0 || lstAufgabenListen.SelectedIndex < 0) return;
 
             FrmAufgabe frmAufgabe = new FrmAufgabe();
-            frmAufgabe.Aufgabe =
-                _aufgabenListe
+            frmAufgabe.Aufgabe = _aufgabenListe
                 .ElementAt(lstAufgabenListen.SelectedIndex)
                 .Aufgaben.ElementAt(lstAufgaben.SelectedIndex);
-            // NEU: Die komplette Benutzerliste wird an das Aufgaben-Formular übergeben.
             frmAufgabe.BenutzerListe = _benutzer;
 
             if (frmAufgabe.ShowDialog() == DialogResult.OK)
@@ -229,28 +199,25 @@ namespace ToDoDesktop
 
         private void FrmMain_FormClosed(object sender, FormClosedEventArgs e)
         {
-            // Speichern der Objektstruktur in der XML-Datei
             XmlSpeichern();
         }
 
         private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (MessageBox.Show(
-                "Anwendung wirklich beenden?",
-                "Programmende",
-                MessageBoxButtons.OKCancel,
-                MessageBoxIcon.Question) != DialogResult.OK)
+            if (MessageBox.Show("Anwendung wirklich beenden?", "Programmende", MessageBoxButtons.OKCancel, MessageBoxIcon.Question) != DialogResult.OK)
             {
-                // Schließen der Form abbrechen
                 e.Cancel = true;
             }
         }
 
-        // Neuen Benutzer anlegen
         private void btnBenutzerNeu_Click(object sender, EventArgs e)
         {
             FrmBenutzer frmBenutzer = new FrmBenutzer();
             Benutzer benutzer = new Benutzer();
+
+            //Weist die nächste freie ID zu und erhöht den Zähler.
+            benutzer.Id = _naechsteBenutzerId++;
+
             frmBenutzer.Benutzer = benutzer;
 
             if (frmBenutzer.ShowDialog() == DialogResult.OK)
@@ -260,17 +227,15 @@ namespace ToDoDesktop
             }
         }
 
-        // Liste der Benutzer aktualisieren
         private void BenutzerAktualisieren()
         {
-            lstBenutzer.Items.Clear();
-            foreach (Benutzer benutzer in _benutzer)
-            {
-                lstBenutzer.Items.Add(benutzer.Name);
-            }
+            //Auch diese ListBox wird jetzt an die Datenquelle gebunden.
+            lstBenutzer.DataSource = null;
+            lstBenutzer.DataSource = _benutzer;
+            lstBenutzer.DisplayMember = "Name";
+            lstBenutzer.ValueMember = "Id";
         }
 
-        // Benutzer bearbeiten
         private void lstBenutzer_DoubleClick(object sender, EventArgs e)
         {
             if (lstBenutzer.SelectedIndex < 0) return;
@@ -281,6 +246,12 @@ namespace ToDoDesktop
             {
                 BenutzerAktualisieren();
             }
+        }
+
+        // Leere Event-Handler können bleiben, sie stören nicht.
+        private void lstAufgaben_SelectedIndexChanged(object sender, EventArgs e)
+        {
+
         }
     }
 }
